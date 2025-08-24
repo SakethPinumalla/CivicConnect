@@ -80,10 +80,6 @@ Your app will be running at: **http://localhost:3000** 🎉
 
 ---
 
-## 📸 Screenshots (Optional)
-*(Add images of your UI – issue reporting form, dashboard, forum view, etc.)*  
-
----
 
 ## 👨‍💻 Contributors  
 - **Saketh Pinumalla** – Developer & Designer  
