@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      width: 100%;
+      background: linear-gradient(135deg, #ffffff, #e0e0e0);
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .profile-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .profile-picture {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 20px;
+      border: 5px solid #fff;
+      transition: transform 0.3s ease;
+    }
+
+    .profile-picture:hover {
+      transform: scale(1.1);
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      font-family: 'Lora', serif;
+      color: #0077B6;
+    }
+
+    .profile-details {
+      margin-top: 20px;
+    }
+
+    .profile-details h2 {
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+      font-weight: bold;
+      color: #0077B6;
+    }
+
+    .profile-details .field {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+      font-size: 1.1rem;
+      color: #333;
+      animation: slideIn 0.6s ease-in-out;
+      transition: transform 0.3s ease, outline 0.3s ease;
+      padding-left: 10px;
+    }
+
+    .profile-details .field strong {
+      color: #0077B6;
+      width: 150px;
+      text-align: right;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .profile-details .field:hover {
+      transform: scale(1.05);
+      outline: 2px solid #0077B6;
+      outline-offset: 5px;
+    }
+
+    .logout-button {
+      margin-top: 30px;
+      text-align: center;
+    }
+
+    .logout-button a {
+      text-decoration: none;
+      color: #fff;
+      background: linear-gradient(135deg, #00C9A7 0%, #006F3C 100%);
+      padding: 12px 25px;
+      border-radius: 30px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+
+    .logout-button a:hover {
+      background: linear-gradient(135deg, #006F3C 0%, #00C9A7 100%);
+      transform: scale(1.1);
+    }
+
+    .logout-button a:active {
+      background: #006F3C;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 25px;
+      }
+
+      .profile-header h1 {
+        font-size: 1.7rem;
+      }
+
+      .profile-details h2 {
+        font-size: 1.5rem;
+      }
+
+      .profile-details p {
+        font-size: 1rem;
+      }
+    }
+
+    .detail-value {
+      margin-left: 10px;  /* Adds margin to the left of the value */
+      font-weight: normal; /* Optional: Adjusts the font weight to normal for the values */
+    }
+
+    .field {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      margin-bottom: 15px;  /* Adds space between each field */
+    }
+
+    .field strong {
+      margin-right: 10px;  /* Adds space between label and value */
+      width: 150px;  /* Ensures the labels align on the left */
+      text-align: right; /* Aligns labels to the right */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="profile-header">
+      <img
+        src="<%= user.profile_picture_url || '/public/default-profile.png' %>"
+        alt="Profile Picture"
+        class="profile-picture"
+      />
+      <h1>Welcome, <%= user.First_Name %> <%= user.Last_Name %>!</h1>
+    </div>
+    <div class="profile-details">
+      <h2>Profile Details:</h2>
+      <div class="field">
+        <p><strong>Email:</strong> <span class="detail-value"><%= user.Email %></span></p>
+      </div>
+      <div class="field">
+        <p><strong>Address:</strong> <span class="detail-value"><%= user.Address %></span></p>
+      </div>
+      <div class="field">
+        <p><strong>Phone:</strong> <span class="detail-value"><%= user.Phone_Number %></span></p>
+      </div>
+      <div class="field">
+        <p><strong>Constituency:</strong> <span class="detail-value"><%= user.Constituency %></span></p>
+      </div>
+    </div>
+    <div class="logout-button">
+      <a href="/logout">Logout</a>
+    </div>
+  </div>
+</body>
+</html>

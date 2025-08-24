@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CivicConnect - Login</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 3rem;
+      text-align: center;
+      margin-bottom: 1rem;
+      color: #ffffff;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    form {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+
+    input, button {
+      width: calc(100% - 2rem);
+      margin: 0.5rem 1rem;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    input {
+      background: rgba(255, 255, 255, 0.8);
+      color: #333;
+      font-family: 'Roboto', sans-serif;
+    }
+
+    input:focus {
+      outline: none;
+      box-shadow: 0 0 5px #00B4D8;
+    }
+
+    button {
+      background: linear-gradient(135deg, #00C9A7 0%, #006F3C 100%);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.3s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      background: linear-gradient(135deg, #006F3C 0%, #00C9A7 100%);
+    }
+
+    .register-link {
+      margin-top: 1rem;
+      text-align: center;
+    }
+
+    .register-link button {
+      background: none;
+      color: #ffffff;
+      border: 2px solid #ffffff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.3s;
+      padding: 0.6rem 1.2rem;
+    }
+
+    .register-link button:hover {
+      transform: scale(1.05);
+      background: #ffffff;
+      color: #0077B6;
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2rem;
+      }
+      input, button {
+        width: calc(100% - 1.5rem);
+        margin: 0.5rem 0.75rem;
+        padding: 0.7rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>CivicConnect - Login</h1>
+    <form action="/login" method="POST">
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Login</button>
+    </form>
+    <div class="register-link">
+      <button onclick="window.location.href='/register'">Don’t have an account? Register Here</button>
+    </div>
+  </div>
+</body>
+</html>

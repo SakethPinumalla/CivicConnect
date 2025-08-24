@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CivicConnect — Report & My Issues</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg1:#0077B6; --bg2:#00B4D8; --glass: rgba(255,255,255,0.18); --glass-2: rgba(255,255,255,0.28);
+      --text:#fff; --ink:#1a1a1a; --ok:#0ea5e9; --pending:#facc15; --progress:#fb923c; --resolved:#22c55e; --closed:#94a3b8;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0; min-height:100vh;
+      font-family:'Poppins',sans-serif; color:var(--text);
+      background: linear-gradient(135deg, var(--bg1), var(--bg2));
+      display:flex; gap:24px; padding:24px;
+    }
+    .col{ flex:1; }
+    .panel{
+      background:var(--glass);
+      backdrop-filter: blur(6px);
+      border:1px solid rgba(255,255,255,0.25);
+      border-radius:16px; padding:20px; box-shadow:0 8px 30px rgba(0,0,0,0.15);
+    }
+    h1, h2{ margin:0 0 12px 0; text-shadow:0 2px 8px rgba(0,0,0,0.25); }
+    .muted{ color:#e6f7ff; opacity:0.9; font-weight:500; }
+
+    /* Form */
+    form label{ display:block; margin:12px 0 6px; font-weight:600; }
+    form input[type="text"],
+    form input[type="file"],
+    form select, form textarea{
+      width:100%; border:none; border-radius:10px; padding:12px;
+      background:rgba(255,255,255,0.9); color:#333; font-family:'Roboto',sans-serif;
+      outline:none;
+    }
+    form textarea{ min-height:110px; resize:vertical; }
+    .row{ display:flex; gap:12px; }
+    .row .half{ flex:1; }
+    .btn{
+      display:inline-block; border:none; border-radius:10px; padding:12px 16px; cursor:pointer;
+      background:linear-gradient(135deg,#00C9A7,#006F3C); color:#fff; font-weight:700;
+      transition: transform .15s ease, filter .15s ease;
+    }
+    .btn:hover{ transform:translateY(-1px); filter:brightness(1.05); }
+    .btn.secondary{ background:linear-gradient(135deg,#6366f1,#4338ca); }
+
+    /* Right column */
+    .tabs{ display:flex; gap:8px; margin-bottom:12px; }
+    .tab{
+      padding:8px 14px; border-radius:999px; cursor:pointer;
+      background:var(--glass-2); border:1px solid rgba(255,255,255,0.35);
+      user-select:none;
+    }
+    .tab.active{ background:#ffffff; color:#111; font-weight:700; }
+    .list{ display:flex; flex-direction:column; gap:12px; }
+    .card{
+      background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.35);
+      border-radius:14px; padding:12px 14px; color:#fff;
+    }
+    .meta{ display:flex; flex-wrap:wrap; gap:8px; font-size:13px; opacity:0.95; align-items:center; }
+    .badge{ padding:4px 8px; border-radius:8px; font-weight:700; font-size:12px; }
+    .b-pending{ background:var(--pending); color:#111; }
+    .b-progress{ background:var(--progress); color:#111; }
+    .b-resolved{ background:var(--resolved); color:#111; }
+    .b-closed{ background:var(--closed); color:#111; }
+
+    .timeline{ margin-top:8px; padding-left:8px; border-left:2px dashed rgba(255,255,255,0.4); }
+    .t-item{ margin:8px 0 8px 12px; }
+    .t-h{ font-weight:700; }
+    .t-ts{ opacity:0.85; font-size:12px; }
+
+    .flex{ display:flex; gap:20px; align-items:center; }
+    .space{ height:12px; }
+
+    .flash{ margin-bottom:12px; background:rgba(34,197,94,0.9); color:#072b13; padding:10px 12px; border-radius:10px; font-weight:700; }
+    @media (max-width: 900px) { body{ flex-direction:column; } }
+  </style>
+</head>
+<body>
+<%
+  // SLA badge helper (server-side)
+  function humanSlaBadge(dueAtStr){
+    if (!dueAtStr) return '<span class="badge">No SLA</span>';
+    const due = new Date(dueAtStr);
+    const now = new Date();
+    const ms = due - now;
+
+    const minutes = Math.round(Math.abs(ms) / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    function fmt(){
+      if (days >= 1) return days + 'd';
+      if (hours >= 1) return hours + 'h';
+      return Math.max(1, minutes) + 'm';
+    }
+
+    if (ms >= 0) {
+      return '<span class="badge" style="background:#22c55e;color:#111;">Due in ' + fmt() + '</span>';
+    } else {
+      return '<span class="badge" style="background:#ef4444;">Overdue by ' + fmt() + '</span>';
+    }
+  }
+
+  // Status → badge class (server-side)
+  function badgeClass(s){
+    if (!s) return 'b-pending';
+    const k = (''+s).toLowerCase();
+    if (k.includes('progress')) return 'b-progress';
+    if (k.includes('resolve'))  return 'b-resolved';
+    if (k.includes('close'))    return 'b-closed';
+    return 'b-pending';
+  }
+%>
+
+  <!-- LEFT: Report Form -->
+  <div class="col">
+    <div class="panel">
+      <h1>Report an Issue</h1>
+      <p class="muted">Describe the problem and capture your location. Images help officials triage faster.</p>
+      <% if (typeof flash !== 'undefined' && flash) { %>
+        <div class="flash"><%= flash %></div>
+      <% } %>
+      <form action="/report-issue" method="POST" enctype="multipart/form-data">
+        <label for="title">Title (optional but recommended)</label>
+        <input type="text" id="title" name="title" placeholder="e.g., Broken streetlight near Block A gate">
+
+        <label for="issueType">Issue Type</label>
+        <select id="issueType" name="issueType" required>
+          <option value="">Select an Issue Type</option>
+          <option>Infrastructure</option>
+          <option>Utilities</option>
+          <option>Public Health and Sanitation</option>
+          <option>Law and Order</option>
+          <option>Environmental Issues</option>
+          <option>Transport and Traffic</option>
+          <option>Welfare Services</option>
+          <option>Educational Institutions</option>
+          <option>Digital Governance</option>
+          <option>Others</option>
+        </select>
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description" placeholder="What exactly is wrong? Add specifics that help fix it." required></textarea>
+
+        <div class="row">
+          <div class="half">
+            <label for="image">Attach Image</label>
+            <input type="file" id="image" name="image" accept="image/*">
+          </div>
+          <div class="half">
+            <label for="govtDept">Department</label>
+            <select id="govtDept" name="govtDept" required>
+              <option value="">Select a Department</option>
+              <option>Municipal Corporation</option>
+              <option>Public Works Department</option>
+              <option>Health Department</option>
+              <option>Transport Department</option>
+              <option>Education Department</option>
+              <option>Others</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="location">Location (text)</label>
+        <input type="text" id="location" name="location" placeholder="Enter landmark or address" required>
+
+        <!-- Hidden geo fields populated by button -->
+        <input type="hidden" id="lat" name="lat">
+        <input type="hidden" id="lon" name="lon">
+        <div class="flex">
+          <button type="button" class="btn secondary" onclick="captureLocation()">Use My Location</button>
+          <button type="submit" class="btn">Submit Issue</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- RIGHT: My Issues (Active + Past with timeline) -->
+  <div class="col">
+    <div class="panel">
+      <div class="flex" style="justify-content:space-between;">
+        <h2>My Issues</h2>
+        <div class="tabs">
+          <div class="tab active" data-tab="active" onclick="switchTab('active')">Active</div>
+          <div class="tab" data-tab="past" onclick="switchTab('past')">Past</div>
+        </div>
+      </div>
+
+      <div id="active" class="list">
+        <% if ((active || []).length === 0) { %>
+          <p class="muted">No active issues. Great job! 👏</p>
+        <% } %>
+        <% (active || []).forEach(i => { %>
+          <div class="card">
+            <div class="flex" style="justify-content:space-between;">
+              <div>
+                <div style="font-weight:700;"><%= i.Title || (i.Issue_Type + ' issue') %></div>
+                <div class="meta">
+                  <span><strong>#<%= i.Issue_ID %></strong></span>
+                  <span>Type: <%= i.Issue_Type %></span>
+                  <span>Dept: <%= i.Govt_Dept %></span>
+                  <span>Loc: <%= i.Location %></span>
+                  <span><%= new Date(i.Created_At).toLocaleString() %></span>
+                  <span><%- humanSlaBadge(i.Due_At) %></span>
+                </div>
+              </div>
+              <div>
+                <span class="badge <%= badgeClass(i.Status) %>"><%= i.Status %></span>
+              </div>
+            </div>
+
+            <% if (eventsByIssue && eventsByIssue[i.Issue_ID]) { %>
+              <div class="timeline">
+                <% eventsByIssue[i.Issue_ID].forEach(ev => { %>
+                  <div class="t-item">
+                    <div class="t-h"><%= ev.From_Status ? (ev.From_Status + " → ") : "" %><%= ev.To_Status %></div>
+                    <div class="t-ts"><%= new Date(ev.Created_At).toLocaleString() %> <%= ev.Note ? ("· " + ev.Note) : "" %></div>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+        <% }) %>
+      </div>
+
+      <div id="past" class="list" style="display:none;">
+        <% if ((past || []).length === 0) { %>
+          <p class="muted">No past issues yet.</p>
+        <% } %>
+        <% (past || []).forEach(i => { %>
+          <div class="card">
+            <div class="flex" style="justify-content:space-between;">
+              <div>
+                <div style="font-weight:700;"><%= i.Title || (i.Issue_Type + ' issue') %></div>
+                <div class="meta">
+                  <span><strong>#<%= i.Issue_ID %></strong></span>
+                  <span>Type: <%= i.Issue_Type %></span>
+                  <span>Dept: <%= i.Govt_Dept %></span>
+                  <span>Loc: <%= i.Location %></span>
+                  <span><%= new Date(i.Created_At).toLocaleString() %></span>
+                  <span><%- humanSlaBadge(i.Due_At) %></span>
+                </div>
+              </div>
+              <div>
+                <span class="badge <%= badgeClass(i.Status) %>"><%= i.Status %></span>
+              </div>
+            </div>
+
+            <% if (eventsByIssue && eventsByIssue[i.Issue_ID]) { %>
+              <div class="timeline">
+                <% eventsByIssue[i.Issue_ID].forEach(ev => { %>
+                  <div class="t-item">
+                    <div class="t-h"><%= ev.From_Status ? (ev.From_Status + " → ") : "" %><%= ev.To_Status %></div>
+                    <div class="t-ts"><%= new Date(ev.Created_At).toLocaleString() %> <%= ev.Note ? ("· " + ev.Note) : "" %></div>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tab logic
+    function switchTab(which){
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab[data-tab="${which}"]`).classList.add('active');
+      document.getElementById('active').style.display = (which === 'active') ? 'block' : 'none';
+      document.getElementById('past').style.display   = (which === 'past')   ? 'block' : 'none';
+    }
+
+    // Capture geolocation into hidden inputs
+    function captureLocation(){
+      if(!navigator.geolocation){ alert('Geolocation not supported'); return; }
+      navigator.geolocation.getCurrentPosition(
+        (pos)=>{
+          document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
+          document.getElementById('lon').value = pos.coords.longitude.toFixed(6);
+          alert('Location captured ✅');
+        },
+        (err)=> alert('Unable to get location: ' + err.message),
+        { enableHighAccuracy:true, timeout:8000 }
+      );
+    }
+  </script>
+</body>
+</html>

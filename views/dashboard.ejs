@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>CivicConnect — Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#0077B6; --bg2:#00B4D8; --glass: rgba(255,255,255,0.18); --line: rgba(255,255,255,0.35);
+    --ink:#111; --ok:#0ea5e9; --urgent:#ef4444; --adv:#f59e0b; --info:#0ea5e9;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; min-height:100vh; font-family:'Poppins',sans-serif; color:#fff;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    padding:24px; display:flex; flex-wrap:wrap; gap:24px;
+  }
+  .col{ flex:1 1 420px; }
+  .panel{
+    background:var(--glass); border:1px solid var(--line);
+    border-radius:16px; padding:18px; backdrop-filter: blur(6px);
+    box-shadow:0 8px 30px rgba(0,0,0,0.15);
+  }
+  h1,h2,h3{ margin:0 0 12px; text-shadow:0 2px 8px rgba(0,0,0,0.25); }
+  .muted{ opacity:0.9; }
+  .row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .tiles{ display:grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:12px; }
+  .tile{
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    border-radius:14px; padding:16px; cursor:pointer; font-weight:700;
+    background:rgba(255,255,255,0.22); border:1px solid var(--line);
+    transition:transform .12s ease, filter .12s ease; color:#fff; text-decoration:none;
+  }
+  .tile:hover{ transform: translateY(-1px); filter:brightness(1.05); }
+  .badge{ padding:4px 8px; border-radius:8px; background:#111; display:inline-block }
+  .badge.urgent{ background:var(--urgent); }
+  .badge.advisory{ background:var(--adv); color:#111; }
+  .badge.info{ background:var(--info); }
+  .list{ display:flex; flex-direction:column; gap:10px; }
+  .card{ background:rgba(255,255,255,0.22); border:1px solid var(--line); border-radius:12px; padding:12px; }
+  table{ width:100%; border-collapse:collapse; }
+  th,td{ border-bottom:1px solid var(--line); padding:8px; text-align:left; }
+  .kpi{ display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  .k{ background:rgba(255,255,255,0.2); border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
+  .rank{ font-weight:800; width:28px; display:inline-block; text-align:center; }
+</style>
+</head>
+<body>
+
+  <!-- LEFT COLUMN: Greeting + Nav tiles + Announcements -->
+  <div class="col">
+    <div class="panel">
+      <h1>Welcome, <%= me.First_Name %> <%= me.Last_Name %></h1>
+      <p class="muted">Constituency: <strong><%= constituency || '—' %></strong></p>
+      <div class="kpi" style="margin-top:8px;">
+        <div class="k">Your Points: <strong><%= me.Points %></strong></div>
+        <a class="k" href="/forum">Forum</a>
+        <a class="k" href="/report">Report</a>
+        <a class="k" href="/home">Profile</a>
+      </div>
+      <div class="tiles" style="margin-top:12px;">
+        <a class="tile" href="/home">👤 My Profile</a>
+        <a class="tile" href="/report">📝 Report an Issue</a>
+        <a class="tile" href="/forum">💬 Community Forum</a>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px;">
+      <h2>Announcements</h2>
+      <p class="muted">From officials in your constituency</p>
+      <div class="list">
+        <% if (!announcements || announcements.length===0) { %>
+          <div class="card muted">No announcements right now.</div>
+        <% } %>
+        <% (announcements || []).forEach(a => { %>
+          <div class="card">
+            <div class="row" style="justify-content:space-between;">
+              <div style="font-weight:700"><%= a.Title %></div>
+              <span class="badge <%= a.Priority==='urgent'?'urgent':(a.Priority==='advisory'?'advisory':'info') %>"><%= a.Priority %></span>
+            </div>
+            <div class="muted" style="font-size:12px; margin-top:4px;">
+              Dept: <%= a.Department || '—' %>
+              · Visible from <%= new Date(a.Visible_From).toLocaleString() %>
+              <% if (a.Visible_Until) { %> to <%= new Date(a.Visible_Until).toLocaleString() %> <% } %>
+            </div>
+            <div style="margin-top:6px; white-space:pre-wrap;"><%= a.Body %></div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN: Top Issues + Leaderboard -->
+  <div class="col">
+    <div class="panel">
+      <h2>Top Issues (last 24h)</h2>
+      <p class="muted">Most reported categories in your area</p>
+      <table>
+        <thead><tr><th>Rank</th><th>Issue Type</th><th>Reports</th></tr></thead>
+        <tbody>
+          <% (topIssues || []).forEach((t, idx) => { %>
+            <tr>
+              <td class="rank">#<%= idx+1 %></td>
+              <td><%= t.category %></td>
+              <td><strong><%= t.count %></strong></td>
+            </tr>
+          <% }) %>
+          <% if (!topIssues || topIssues.length===0) { %>
+            <tr><td colspan="3" class="muted">No reports in the last 24 hours.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel" style="margin-top:14px;">
+      <h2>Leaderboard</h2>
+      <p class="muted">Top contributors (by points)</p>
+      <table>
+        <thead><tr><th>#</th><th>Citizen</th><th>Points</th></tr></thead>
+        <tbody>
+          <% (leaders || []).forEach((p, idx) => { %>
+            <tr>
+              <td class="rank"><%= idx+1 %></td>
+              <td>Citizen #<%= p.Citizen_ID %> — <%= p.First_Name %> <%= p.Last_Name %></td>
+              <td><strong><%= p.Points %></strong></td>
+            </tr>
+          <% }) %>
+          <% if (!leaders || leaders.length===0) { %>
+            <tr><td colspan="3" class="muted">No participants yet.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</body>
+</html>

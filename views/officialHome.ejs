@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Official Dashboard — CivicConnect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{margin:0;min-height:100vh;font-family:Arial,sans-serif;color:#fff;
+      background:linear-gradient(135deg,#0ea5e9,#22c55e);padding:20px;display:flex;gap:20px;flex-wrap:wrap}
+    .col{flex:1 1 420px}
+    .panel{background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);
+      border-radius:14px;padding:16px;backdrop-filter:blur(6px)}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid rgba(255,255,255,0.3);padding:8px;text-align:left;vertical-align:top}
+    .muted{opacity:0.9}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .badge{padding:4px 8px;border-radius:8px;background:#111;display:inline-block}
+    input,select,textarea,button{border:none;border-radius:8px;padding:8px}
+    textarea{min-height:70px}
+    .btn{background:#111;color:#fff;cursor:pointer}
+    .btn.alt{background:#334155}
+  </style>
+</head>
+<body>
+<%
+  function humanSlaBadge(dueAtStr){
+    if (!dueAtStr) return '<span class="badge">No SLA</span>';
+    const due = new Date(dueAtStr);
+    const now = new Date();
+    const ms = due - now;
+
+    const abs = Math.abs(ms);
+    const minutes = Math.round(abs / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    function fmt(){
+      if (days >= 1) return days + 'd';
+      if (hours >= 1) return hours + 'h';
+      return Math.max(1, minutes) + 'm';
+    }
+
+    if (ms >= 0) {
+      return '<span class="badge" style="background:#22c55e;color:#111;">Due in ' + fmt() + '</span>';
+    } else {
+      return '<span class="badge" style="background:#ef4444;">Overdue by ' + fmt() + '</span>';
+    }
+  }
+%>
+
+  <div class="col">
+    <div class="panel">
+      <div class="row">
+        <h2>Welcome, <%= me.name %></h2>
+        <a class="btn alt" href="/official/logout">Logout</a>
+      </div>
+      <p class="muted">Department: <strong><%= me.dept %></strong> · Constituency: <strong><%= me.constituency %></strong></p>
+    </div>
+
+    <!-- Announcement terminal -->
+    <div class="panel" style="margin-top:14px">
+      <h3>Create Announcement</h3>
+      <form method="POST" action="/official/announce">
+        <label>Title</label>
+        <input name="title" type="text" required maxlength="150" placeholder="e.g., Road repair scheduled for Sector 12">
+        <label>Body</label>
+        <textarea name="body" required placeholder="Details, time windows, contact, etc."></textarea>
+        <div class="row">
+          <div>
+            <label>Priority</label>
+            <select name="priority">
+              <option value="info">Info</option>
+              <option value="advisory">Advisory</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+          <div>
+            <label>Visible Until (optional)</label>
+            <input name="visibleUntil" type="datetime-local">
+          </div>
+        </div>
+        <div style="margin-top:10px"><button class="btn" type="submit">Publish</button></div>
+      </form>
+    </div>
+
+    <!-- My recent announcements -->
+    <div class="panel" style="margin-top:14px">
+      <h3>My Announcements</h3>
+      <table>
+        <thead><tr><th>Title</th><th>Priority</th><th>Window</th><th>Created</th></tr></thead>
+        <tbody>
+          <% (announcements || []).forEach(a => { %>
+            <tr>
+              <td><%= a.Title %></td>
+              <td><span class="badge"><%= a.Priority %></span></td>
+              <td>
+                <%= new Date(a.Visible_From).toLocaleString() %>
+                <% if (a.Visible_Until) { %> → <%= new Date(a.Visible_Until).toLocaleString() %> <% } %>
+              </td>
+              <td><%= new Date(a.Created_At).toLocaleString() %></td>
+            </tr>
+          <% }) %>
+          <% if (!announcements || announcements.length===0){ %>
+            <tr><td colspan="4" class="muted">No announcements yet.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Issues list & inline status update -->
+  <div class="col">
+    <div class="panel">
+      <h3>Department Issues (Your Constituency)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Title</th><th>Type</th><th>Citizen</th><th>Location</th><th>Status</th><th>SLA</th><th>Update / QR</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% (issues || []).forEach(i => { %>
+<tr>
+  <td><%= i.Issue_ID %></td>
+  <td><%= i.Title || (i.Issue_Type + ' issue') %></td>
+  <td><%= i.Issue_Type %></td>
+  <td>Citizen #<%= i.Citizen_ID %> (<%= i.First_Name %> <%= i.Last_Name %>)</td>
+  <td><%= i.Location %></td>
+  <td><span class="badge"><%= i.Status %></span></td>
+  <td><%- humanSlaBadge(i.Due_At) %></td>
+  <td>
+    <form method="POST" action="/official/updateStatus" enctype="multipart/form-data">
+      <input type="hidden" name="issueId" value="<%= i.Issue_ID %>">
+      <select name="newStatus" required>
+        <option <%= i.Status==='Pending'?'selected':'' %>>Pending</option>
+        <option <%= i.Status==='In Progress'?'selected':'' %>>In Progress</option>
+        <option <%= i.Status==='Resolved'?'selected':'' %>>Resolved</option>
+        <option <%= i.Status==='Closed'?'selected':'' %>>Closed</option>
+      </select>
+      <input name="note" type="text" placeholder="Optional note">
+
+      <input name="closedLat" id="closedLat-<%= i.Issue_ID %>" type="text" placeholder="GPS lat (required for resolve)" />
+      <input name="closedLon" id="closedLon-<%= i.Issue_ID %>" type="text" placeholder="GPS lon (required for resolve)" />
+      <input name="closedImage" type="file" accept="image/*" />
+
+      <button type="button" class="btn alt" onclick="capLoc('<%= i.Issue_ID %>')">📍 GPS</button>
+      <button class="btn" type="submit">Save</button>
+    </form>
+
+    <div class="muted" style="margin-top:6px">
+      <% if (i.QR_Token) { %>
+        <a href="/uploads/qrs/issue_<%= i.Issue_ID %>.png" download>QR PNG</a> ·
+        <a href="/scan/<%= i.QR_Token %>" target="_blank">Scan URL</a>
+      <% } else { %>
+        <span>No QR</span>
+      <% } %>
+    </div>
+  </td>
+</tr>
+
+          <% }) %>
+          <% if (!issues || issues.length===0){ %>
+            <tr><td colspan="8" class="muted">No issues found for your department/constituency.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+  window.capLoc = function(id){
+    if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        var latEl = document.getElementById('closedLat-'+id);
+        var lonEl = document.getElementById('closedLon-'+id);
+        if (!latEl || !lonEl) { alert('Lat/Lon inputs not found for issue '+id); return; }
+        latEl.value = pos.coords.latitude.toFixed(6);
+        lonEl.value  = pos.coords.longitude.toFixed(6);
+      },
+      function(err){ alert('GPS error: ' + err.message); },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CivicConnect — Community Forum</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg1:#0ea5e9; --bg2:#22d3ee; --glass: rgba(255,255,255,0.18); --ink:#111;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0; min-height:100vh; font-family:'Poppins',sans-serif; color:#fff;
+      background: linear-gradient(135deg, var(--bg1), var(--bg2));
+      padding: 24px; display:flex; gap:24px; flex-wrap:wrap;
+    }
+    .col{ flex: 1 1 420px; }
+    .panel{
+      background: var(--glass); border:1px solid rgba(255,255,255,0.28);
+      border-radius:16px; backdrop-filter: blur(6px);
+      padding:18px; box-shadow:0 8px 30px rgba(0,0,0,0.15);
+    }
+    h1,h2{ margin: 0 0 12px; text-shadow:0 2px 8px rgba(0,0,0,0.25); }
+    label{ display:block; margin:10px 0 6px; font-weight:600; }
+    input[type=text], textarea{
+      width:100%; border:none; border-radius:10px; padding:12px;
+      background:rgba(255,255,255,0.9); color:#333; font-family:'Roboto',sans-serif;
+      outline:none;
+    }
+    textarea{ min-height:130px; resize:vertical; }
+    .btn{
+      display:inline-block; border:none; border-radius:10px; padding:10px 14px; cursor:pointer;
+      background:#111; color:#fff; font-weight:700; margin-right:8px;
+    }
+    .btn.secondary{ background:#334155; }
+    .toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+    .chip{ padding:6px 12px; border-radius:999px; background:rgba(255,255,255,0.25); border:1px solid rgba(255,255,255,0.35); }
+    .chip.active{ background:#fff; color:#111; font-weight:700; }
+    .list{ display:flex; flex-direction:column; gap:12px; }
+    .card{ background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.35); border-radius:12px; padding:12px; }
+    .meta{ font-size:12px; opacity:0.95; }
+    .row{ display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .upvote{ display:flex; align-items:center; gap:10px; }
+    .count{ font-weight:800; font-size:18px; }
+    .muted{ opacity:0.9; }
+  </style>
+</head>
+<body>
+
+  <!-- Left: Create Post -->
+  <div class="col">
+    <div class="panel">
+      <h2>Start a Discussion</h2>
+      <% if (constituency) { %>
+        <p class="muted">Posting to your constituency: <strong><%= constituency %></strong></p>
+      <% } else if (showAll) { %>
+        <p class="muted">Showing all constituencies.</p>
+      <% } %>
+      <form method="POST" action="/forum/new">
+        <label for="title">Title</label>
+        <input id="title" name="title" type="text" maxlength="150" required placeholder="e.g., Streetlights not working near 3rd Avenue" />
+        <label for="content">Content</label>
+        <textarea id="content" name="content" required placeholder="Add details, photos (via uploads in issues), and suggestions."></textarea>
+        <div style="margin-top:10px;">
+          <button class="btn" type="submit">Post</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right: Posts List -->
+  <div class="col">
+    <div class="panel">
+      <div class="toolbar">
+        <a class="chip <%= sort === 'top' ? 'active' : '' %>" href="/forum?sort=top<%= showAll ? '&all=1' : '' %>">Top</a>
+        <a class="chip <%= sort === 'recent' ? 'active' : '' %>" href="/forum?sort=recent<%= showAll ? '&all=1' : '' %>">Recent</a>
+        <% if (showAll) { %>
+          <a class="chip" href="/forum?sort=<%= sort %>">My Constituency</a>
+        <% } else { %>
+          <a class="chip" href="/forum?sort=<%= sort %>&all=1">Show All</a>
+        <% } %>
+      </div>
+
+      <div class="list">
+        <% if (!posts || posts.length === 0) { %>
+          <p class="muted">No posts yet. Be the first to start a discussion!</p>
+        <% } %>
+
+        <% (posts || []).forEach(p => { %>
+          <div class="card">
+            <div class="row">
+              <div>
+                <div style="font-weight:700; font-size:18px;"><%= p.Title %></div>
+                <div class="meta">
+                  Posted by Citizen #<%= p.Citizen_ID %>
+                  (<%= p.First_Name %> <%= p.Last_Name %>)
+                  · <%= new Date(p.Created_At).toLocaleString() %>
+                  <% if (p.Constituency) { %> · Constituency: <%= p.Constituency %> <% } %>
+                </div>
+                <div style="margin-top:8px; white-space:pre-wrap;"><%= p.Content %></div>
+              </div>
+
+              <div class="upvote">
+                <div class="count"><%= p.upvotes %></div>
+                <% if (p.upvoted) { %>
+                  <form method="POST" action="/forum/<%= p.Post_ID %>/unvote">
+                    <button class="btn secondary" type="submit" title="Remove your upvote">Unvote</button>
+                  </form>
+                <% } else { %>
+                  <form method="POST" action="/forum/<%= p.Post_ID %>/upvote">
+                    <button class="btn" type="submit" title="Upvote this post">Upvote</button>
+                  </form>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

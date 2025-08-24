@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Issue Scan</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{margin:0;min-height:100vh;font-family:Arial,sans-serif;background:#0ea5e9;color:#fff;padding:16px}
+    .card{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.35);border-radius:12px;padding:12px;margin-bottom:12px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    input,select,button{border:none;border-radius:8px;padding:8px}
+    .btn{background:#111;color:#fff;cursor:pointer}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid rgba(255,255,255,0.35);padding:8px;text-align:left}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Issue #<%= issue.Issue_ID %> — <%= issue.Title || issue.Issue_Type %></h2>
+    <div>Location: <%= issue.Location %></div>
+    <div>Status: <strong><%= issue.Status %></strong></div>
+    <div>Created: <%= new Date(issue.Created_At).toLocaleString() %></div>
+    <div>
+      SLA: 
+      <% if (issue.Due_At) { %>
+        due <%= new Date(issue.Due_At).toLocaleString() %>
+      <% } else { %>
+        not set
+      <% } %>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Log Field Event</h3>
+    <form method="POST" action="/scan/<%= issue.QR_Token %>/event" enctype="multipart/form-data">
+      <select name="event" required>
+        <option value="ARRIVED">ARRIVED</option>
+        <option value="STARTED">STARTED</option>
+        <option value="COMPLETED">COMPLETED</option>
+      </select>
+      <input type="text" id="lat" name="lat" placeholder="Lat">
+      <input type="text" id="lon" name="lon" placeholder="Lon">
+      <input type="file" name="photo" accept="image/*">
+      <button type="button" class="btn" onclick="cap()">📍 GPS</button>
+      <button type="submit" class="btn">Submit</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Recent Field Events</h3>
+    <table>
+      <thead><tr><th>Event</th><th>Lat</th><th>Lon</th><th>Photo</th><th>Time</th></tr></thead>
+      <tbody>
+        <% if (!events || events.length===0) { %>
+          <tr><td colspan="5">No events yet.</td></tr>
+        <% } %>
+        <% (events || []).forEach(e => { %>
+          <tr>
+            <td><%= e.Event %></td>
+            <td><%= e.Lat || '' %></td>
+            <td><%= e.Lon || '' %></td>
+            <td>
+              <% if (e.Photo) { %>
+                <a href="/<%= e.Photo.replace(/^\/+/, '') %>" target="_blank">Photo</a>
+              <% } %>
+            </td>
+            <td><%= new Date(e.Created_At).toLocaleString() %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    function cap(){
+      if (!navigator.geolocation) return alert('Geolocation not supported');
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
+          document.getElementById('lon').value = pos.coords.longitude.toFixed(6);
+        },
+        err => alert('GPS error: ' + err.message),
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+  </script>
+</body>
+</html>
